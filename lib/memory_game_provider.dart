@@ -1,31 +1,83 @@
 import 'package:flutter/material.dart';
 
 class MemoryGameProvider extends ChangeNotifier {
-  List<String> cardImages = [
-    'assets/apple.png',
-    'assets/apple.png',
-    'assets/banana.png',
-    'assets/banana.png',
-    'assets/cherry.png',
-    'assets/cherry.png',
-    'assets/grape.png',
-    'assets/grape.png',
-  ];
+  int gridSize = 4; // Default size
+  int totalCards = 16;
 
-  List<bool> flippedCards = List.filled(8, false);
+  List<String> cardImages = [];
+  List<bool> flippedCards = [];
   List<int> selectedIndexes = [];
   int score = 0;
 
+  final List<String> allImages = [
+    'assets/apple.png',
+    'assets/apple.png',
+    'assets/banana.png',
+    'assets/banana.png',
+    'assets/cherry.png',
+    'assets/cherry.png',
+    'assets/grape.png',
+    'assets/grape.png',
+    'assets/orange.png',
+    'assets/orange.png',
+    'assets/strawberry.png',
+    'assets/strawberry.png',
+    'assets/blueberry.png',
+    'assets/blueberry.png',
+    'assets/coconut.png',
+    'assets/coconut.png',
+    'assets/kiwi.png',
+    'assets/kiwi.png',
+    'assets/lemon.png',
+    'assets/lemon.png',
+    'assets/mango.png',
+    'assets/mango.png',
+    'assets/peach.png',
+    'assets/peach.png',
+    'assets/pear.png',
+    'assets/pear.png',
+    'assets/pineapple.png',
+    'assets/pineapple.png',
+    'assets/plum.png',
+    'assets/plum.png',
+    'assets/raspberry.png',
+    'assets/raspberry.png',
+    'assets/watermelon.png',
+    'assets/watermelon.png',
+  ];
+
   MemoryGameProvider() {
+    _initializeGame();
+  }
+
+  void _initializeGame() {
+    totalCards = gridSize * gridSize;
+
+    // Ensure enough images exist
+    if (totalCards > allImages.length) {
+      debugPrint(
+        "⚠️ Warning: Grid size exceeds available images. Adjusting...",
+      );
+      totalCards = allImages.length; // Prevents crashes
+    }
+
+    cardImages = List.from(allImages.sublist(0, totalCards));
     cardImages.shuffle();
+    flippedCards = List.filled(totalCards, false);
+    selectedIndexes.clear();
+    score = 0;
+    notifyListeners();
+  }
+
+  void setDifficulty(int size) {
+    gridSize = size;
+    totalCards = gridSize * gridSize;
+    _initializeGame(); // Ensures proper list reallocation
+    notifyListeners(); // Forces UI refresh
   }
 
   void resetGame() {
-    cardImages.shuffle(); // Shuffle cards again
-    flippedCards = List.filled(cardImages.length, false); // Reset flips
-    selectedIndexes.clear();
-    score = 0;
-    notifyListeners(); // Update UI
+    _initializeGame();
   }
 
   void flipCard(int index) {
@@ -35,13 +87,14 @@ class MemoryGameProvider extends ChangeNotifier {
       notifyListeners();
 
       if (selectedIndexes.length == 2) {
-        Future.delayed(Duration(seconds: 1), checkMatch);
+        Future.delayed(const Duration(seconds: 1), checkMatch);
       }
     }
   }
 
   void checkMatch() {
-    if (cardImages[selectedIndexes[0]] == cardImages[selectedIndexes[1]]) {
+    if (selectedIndexes.length == 2 &&
+        cardImages[selectedIndexes[0]] == cardImages[selectedIndexes[1]]) {
       score++;
     } else {
       flippedCards[selectedIndexes[0]] = false;

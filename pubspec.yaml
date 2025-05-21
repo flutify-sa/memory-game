@@ -25,12 +25,7 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/apple.png
-    - assets/banana.png
-    - assets/cherry.png
-    - assets/grape.png
-    - assets/valknut.png 
-    - assets/blue.png
+    - assets/
 
   fonts:
     - family: Flutify
