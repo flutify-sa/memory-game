@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class MemoryGameProvider extends ChangeNotifier {
-  int gridSize = 4; // Default size
+  int gridSize = 4;
   int totalCards = 16;
+  int totalFlips = 0;
+  int score = 0; // Added score tracking
 
   List<String> cardImages = [];
   List<bool> flippedCards = [];
   List<int> selectedIndexes = [];
-  int score = 0;
 
   final List<String> allImages = [
     'assets/apple.png',
@@ -18,8 +20,6 @@ class MemoryGameProvider extends ChangeNotifier {
     'assets/cherry.png',
     'assets/grape.png',
     'assets/grape.png',
-    'assets/orange.png',
-    'assets/orange.png',
     'assets/strawberry.png',
     'assets/strawberry.png',
     'assets/blueberry.png',
@@ -47,59 +47,103 @@ class MemoryGameProvider extends ChangeNotifier {
   ];
 
   MemoryGameProvider() {
-    _initializeGame();
+    _loadGameState(); // Load saved stats
+  }
+
+  Future<void> _loadGameState() async {
+    final prefs = await SharedPreferences.getInstance();
+    gridSize = prefs.getInt("gridSize") ?? 4;
+    totalFlips = prefs.getInt("totalFlips") ?? 0;
+    score = prefs.getInt("score") ?? 0;
+    notifyListeners();
+    _initializeGame(); // Ensure the game loads correctly
+  }
+
+  Future<void> _saveGameState() async {
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setInt("gridSize", gridSize);
+    prefs.setInt("totalFlips", totalFlips);
+    prefs.setInt("score", score);
   }
 
   void _initializeGame() {
     totalCards = gridSize * gridSize;
+    totalFlips = 0;
+    score = 0;
 
-    // Ensure enough images exist
     if (totalCards > allImages.length) {
-      debugPrint(
-        "⚠️ Warning: Grid size exceeds available images. Adjusting...",
-      );
-      totalCards = allImages.length; // Prevents crashes
+      debugPrint("⚠️ Grid size exceeds available images. Adjusting...");
+      totalCards = allImages.length;
     }
 
     cardImages = List.from(allImages.sublist(0, totalCards));
     cardImages.shuffle();
     flippedCards = List.filled(totalCards, false);
     selectedIndexes.clear();
-    score = 0;
     notifyListeners();
   }
 
   void setDifficulty(int size) {
     gridSize = size;
-    totalCards = gridSize * gridSize;
-    _initializeGame(); // Ensures proper list reallocation
-    notifyListeners(); // Forces UI refresh
+    _initializeGame();
+    _saveGameState(); // Ensure settings persist
+    notifyListeners();
   }
 
   void resetGame() {
+    totalFlips = 0;
+    score = 0;
     _initializeGame();
+    _saveGameState();
+    notifyListeners();
   }
+
+  int get minPossibleFlips => totalCards;
 
   void flipCard(int index) {
     if (!flippedCards[index] && selectedIndexes.length < 2) {
       selectedIndexes.add(index);
       flippedCards[index] = true;
+      totalFlips++;
       notifyListeners();
+      _saveGameState(); // Save flip count
 
+      // Check for a match only when 2 cards are flipped
       if (selectedIndexes.length == 2) {
-        Future.delayed(const Duration(seconds: 1), checkMatch);
+        Future.delayed(const Duration(seconds: 1), () {
+          if (selectedIndexes.isNotEmpty) {
+            checkMatch();
+          }
+        });
       }
     }
   }
 
   void checkMatch() {
-    if (selectedIndexes.length == 2 &&
-        cardImages[selectedIndexes[0]] == cardImages[selectedIndexes[1]]) {
-      score++;
-    } else {
-      flippedCards[selectedIndexes[0]] = false;
-      flippedCards[selectedIndexes[1]] = false;
+    if (selectedIndexes.length < 2) {
+      debugPrint("⚠️ Error: Not enough selected cards to check a match.");
+      return;
     }
+
+    int firstIndex = selectedIndexes[0];
+    int secondIndex = selectedIndexes[1];
+
+    if (firstIndex < 0 ||
+        firstIndex >= cardImages.length ||
+        secondIndex < 0 ||
+        secondIndex >= cardImages.length) {
+      debugPrint("⚠️ Error: Index out of range.");
+      return;
+    }
+
+    if (cardImages[firstIndex] == cardImages[secondIndex]) {
+      score++; // Increase score for correct match
+      _saveGameState(); // Persist updated score
+    } else {
+      flippedCards[firstIndex] = false;
+      flippedCards[secondIndex] = false;
+    }
+
     selectedIndexes.clear();
     notifyListeners();
   }
