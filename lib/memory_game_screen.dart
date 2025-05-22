@@ -21,8 +21,8 @@ class MemoryGameScreen extends StatelessWidget {
                   "Memory Game",
                   style: TextStyle(
                     fontSize: 20,
-                    fontWeight: FontWeight.normal,
-                    letterSpacing: 1.5,
+                    fontWeight: FontWeight.bold,
+                    //  letterSpacing: 1.5,
                   ),
                 ),
                 centerTitle: true,
